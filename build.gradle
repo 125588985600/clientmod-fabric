@@ -1,0 +1,106 @@
+plugins {
+	// 固定版本，不要用 -SNAPSHOT：快照会被 Fabric 随时覆盖或清理，导致同一份配置昨天能编今天挂
+	// 可用版本列表：https://maven.fabricmc.net/fabric-loom/fabric-loom.gradle.plugin/
+	id 'fabric-loom' version '1.11.8'
+	// Kotlin：只用于业务模块（src/main/kotlin），框架层仍是 Java
+	id 'org.jetbrains.kotlin.jvm' version '2.1.20'
+	id 'maven-publish'
+}
+
+version = project.mod_version
+group = project.maven_group
+
+base {
+	archivesName = project.archives_base_name
+}
+
+repositories {
+	maven { name = 'Fabric'; url = 'https://maven.fabricmc.net/' }
+	maven { name = 'Mojang'; url = 'https://libraries.minecraft.net/' }
+	mavenCentral()
+}
+
+// Kotlin 版本写死在这里，不再从 gradle.properties 读。
+// 原因：读属性时若文件没同步到位，会直接报
+// "Could not get unknown property 'kotlin_version'"，整个工程连配置阶段都过不去。
+def kotlinVersion = '2.1.20'
+
+dependencies {
+	minecraft "com.mojang:minecraft:${project.minecraft_version}"
+	mappings "net.fabricmc:yarn:${project.yarn_mappings}:v2"
+	modImplementation "net.fabricmc:fabric-loader:${project.loader_version}"
+
+	// 细粒度 Fabric API：只引真正用到的 4 个模块，不再拖整个 fabric-api。
+	// 运行时仍需安装 Fabric API（完整版包含所有子模块，装它即可）。
+	def fabricApiModules = [
+			'fabric-api-base',              // 基础
+			'fabric-key-binding-api-v1',    // KeyBindingHelper
+			'fabric-lifecycle-events-v1',   // ClientTickEvents
+			'fabric-rendering-v1'           // HudRenderCallback
+	]
+	fabricApiModules.each {
+		modImplementation fabricApi.module(it, project.fabric_version)
+	}
+
+	// Minecraft 运行环境不带 Kotlin，标准库必须打进 jar 才能运行
+	implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+	include "org.jetbrains.kotlin:kotlin-stdlib:$kotlinVersion"
+}
+
+// Kotlin 与 Java 共用 JDK 21 工具链，避免两边字节码版本不一致
+kotlin {
+	jvmToolchain(21)
+}
+
+processResources {
+	inputs.property 'version', project.version
+	inputs.property 'minecraft_version', project.minecraft_version
+	inputs.property 'loader_version', project.loader_version
+	filteringCharset 'UTF-8'
+
+	filesMatching('fabric.mod.json') {
+		expand 'version': project.version,
+				'minecraft_version': project.minecraft_version,
+				'loader_version': project.loader_version
+	}
+}
+
+def targetJavaVersion = 21
+
+tasks.withType(JavaCompile).configureEach {
+	it.options.encoding = 'UTF-8'
+	if (targetJavaVersion >= 10) {
+		it.options.release = targetJavaVersion
+	}
+}
+
+java {
+	def javaVersion = JavaVersion.toVersion(targetJavaVersion)
+	sourceCompatibility = javaVersion
+	targetCompatibility = javaVersion
+
+	if (JavaVersion.current() < javaVersion) {
+		toolchain.languageVersion = JavaLanguageVersion.of(targetJavaVersion)
+	}
+
+	withSourcesJar()
+}
+
+jar {
+	from('LICENSE') {
+		rename { "${it}_${project.base.archivesName.get()}" }
+	}
+}
+
+publishing {
+	publications {
+		create('mavenJava', MavenPublication) {
+			artifactId = project.archives_base_name
+			from components.java
+		}
+	}
+
+	repositories {
+		// 如需发布到自己的 Maven 仓库，在这里配置
+	}
+}

@@ -1,0 +1,6 @@
+{
+  "key.category.clientmod": "ClientMod",
+  "key.clientmod.openGui": "Open settings screen",
+  "key.clientmod.toggleHud": "Toggle HUD overlay",
+  "key.clientmod.module.killaura": "Toggle KillAura"
+}

@@ -1,0 +1,6 @@
+{
+  "key.category.clientmod": "ClientMod 客户端模组",
+  "key.clientmod.openGui": "打开设置界面",
+  "key.clientmod.toggleHud": "切换 HUD 显示",
+  "key.clientmod.module.killaura": "开关 KillAura"
+}

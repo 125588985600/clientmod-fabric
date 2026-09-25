@@ -1,0 +1,28 @@
+pluginManagement {
+	repositories {
+		// 插件仓库必须写在这里。写在 build.gradle 的 repositories 里太晚，
+		// Gradle 解析 plugins {} 时还没读到，就会去 Maven Central 找，然后报找不到
+		maven {
+			name = 'Fabric'
+			url = uri('https://maven.fabricmc.net/')
+		}
+		gradlePluginPortal()
+		mavenCentral()
+	}
+}
+
+dependencyResolutionManagement {
+	repositories {
+		maven {
+			name = 'Fabric'
+			url = uri('https://maven.fabricmc.net/')
+		}
+		maven {
+			name = 'Mojang'
+			url = uri('https://libraries.minecraft.net/')
+		}
+		mavenCentral()
+	}
+}
+
+rootProject.name = 'clientmod-fabric'
